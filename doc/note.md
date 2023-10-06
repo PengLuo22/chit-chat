@@ -132,5 +132,154 @@ func store(post Post) {
 
 
 
+## 任务4 数据的持久化（二）：标准库操作数据库
+
+需求：能够通过go的标准库完成CRUD操作。没有特殊说明，数据库使用的是 MySQL
+
+第1步：完成post表的数据初始化
+
+```sql
+-- 第1步：创建数据库
+CREATE DATABASE gwp;
+-- 第2步：使用数据库
+USE gwp;
+-- 第3步：创建表
+CREATE TABLE post (
+    id INT PRIMARY KEY,
+    content TEXT,
+    author VARCHAR(255)
+);
+-- 第4步：添加测试数据
+INSERT INTO post (id, content, author)
+VALUES
+    (1, 'Content 1', 'Author 1'),
+    (2, 'Content 2', 'Author 2'),
+    (3, 'Content 3', 'Author 3'),
+    (4, 'Content 4', 'Author 4'),
+    (5, 'Content 5', 'Author 5'),
+    (6, 'Content 6', 'Author 6'),
+    (7, 'Content 7', 'Author 7'),
+    (8, 'Content 8', 'Author 8'),
+    (9, 'Content 9', 'Author 9'),
+    (10, 'Content 10', 'Author 10');
+```
+
+第2步：创建`persist_db_raw.go`文件，键入如下代码
+
+```go
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	_ "github.com/go-sql-driver/mysql"
+	"math/rand"
+	"strings"
+)
+
+// 数据库配置
+const (
+	userName = "root"
+	password = "123456"
+	ip       = "127.0.0.1"
+	port     = "3306"
+	dbName   = "gwp"
+)
+
+type Post struct {
+	Id      int
+	Content string
+	Author  string
+}
+
+var Db *sql.DB
+
+func init() {
+	var err error
+	//构建连接："用户名:密码@tcp(IP:端口)/数据库?charset=utf8"
+	path := strings.Join([]string{userName, ":", password, "@tcp(", ip, ":", port, ")/", dbName, "?charset=utf8"}, "")
+	Db, err = sql.Open("mysql", path)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (post *Post) Delete() (err error) {
+	_, err = Db.Exec("delete from post where id = ?", post.Id)
+	return
+}
+
+func Posts() (posts []Post, err error) {
+	rows, err := Db.Query("select id, content,author from post")
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		post := Post{}
+		rows.Scan(&post.Id, &post.Content, &post.Author)
+		if err != nil {
+			return
+		}
+		posts = append(posts, post)
+	}
+	rows.Close()
+	return
+}
+
+func (post *Post) Update() (err error) {
+	Db.Exec("update post set content = ?,author = ? where id = ?", post.Content, post.Author, post.Id)
+	return
+}
+
+// 根据主键查询
+func GetPost(id int) (post Post, err error) {
+	post = Post{}
+	err = Db.QueryRow("select id,content,author from post where id = ?", id).Scan(&post.Id, &post.Content, &post.Author)
+	return
+
+}
+
+func (post *Post) Create() (err error) {
+
+	statement := "insert into post (id,content,author) values (?,?,?)"
+
+	_, err = Db.Exec(statement, post.Id, post.Content, post.Author)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func main() {
+
+	// 实例化一条帖子
+	post := Post{Id: rand.Intn(11), Content: "add one record by orm tool", Author: "gorm"}
+
+	// 新增
+	fmt.Println(post)
+	post.Create()
+	fmt.Println(post)
+
+	// 根据主键查询
+	readPost, _ := GetPost(post.Id)
+
+	// 修改
+	readPost.Content = "content had updated"
+	readPost.Author = "gorm-update"
+	readPost.Update()
+
+	// 查所有
+	posts, _ := Posts()
+	fmt.Println(posts)
+
+	// 根据主键删除
+	readPost.Delete()
+}
+```
+
+第3步：执行程序，数据库中查看post表的记录
+
+
 
 
