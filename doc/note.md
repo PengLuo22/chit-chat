@@ -282,4 +282,100 @@ func main() {
 
 
 
+## 任务5 数据的持久化（三）：ORM框架操作数据库
+
+需求：能够通过开源的ORM框架GORM完成CRUD操作。
+
+在任务4，我们已经完成了数据库、post表的初始化，接下来只需要关注[GORM](https://gorm.io/docs/index.html)框架的使用
+
+第1步：安装依赖
+
+```go
+go get -u gorm.io/gorm
+go get -u gorm.io/driver/mysql
+```
+
+第2步：创建`persist_db_gorm.go`文件，键入如下代码
+
+注意实现Tabler接口  指定表名
+
+```go
+package main
+
+import (
+	"fmt"
+	_ "github.com/go-sql-driver/mysql"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	"math/rand"
+	"strings"
+)
+
+// 数据库配置
+const (
+	userName = "root"
+	password = "123456"
+	ip       = "127.0.0.1"
+	port     = "3306"
+	dbName   = "gwp"
+)
+
+type Post struct {
+	Id      int
+	Content string
+	Author  string
+}
+
+// ctrl + i 实现Tabler接口  指定表名
+func (p Post) TableName() string {
+	return "post"
+}
+
+var Db *gorm.DB
+
+func init() {
+	var err error
+	//构建连接："用户名:密码@tcp(IP:端口)/数据库?charset=utf8"
+	dsn := strings.Join([]string{userName, ":", password, "@tcp(", ip, ":", port, ")/", dbName, "?charset=utf8"}, "")
+	Db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic(err)
+	}
+}
+
+func main() {
+
+	// 实例化一条帖子
+	post := Post{Id: rand.Intn(11), Content: "add one record by gorm", Author: "gorm"}
+
+	// 新增
+	result := Db.Create(&post)
+	fmt.Println(result)
+
+	// 根据主键查询 SELECT * FROM post WHERE id = 10;
+	readPost := Post{}
+	Db.First(&readPost, 2)
+
+	// 修改
+	readPost.Content = "content had updated"
+	readPost.Author = "gorm-update"
+	Db.Updates(readPost)
+
+	// 查所有
+	posts := make([]Post, 10)
+	Db.Find(&posts)
+	for _, p := range posts {
+		fmt.Println(p)
+	}
+
+	// 根据主键删除
+	Db.Delete(readPost, 8)
+
+}
+
+```
+
+第3步：执行程序，数据库中查看post表的记录
+
+
 
