@@ -3,7 +3,7 @@
 
 
 
-创建Hello.go 文件，键入如下1-1代码，保存
+创建hello.go 文件，键入如下1-1代码，保存
 
 ```go
 package main
@@ -15,7 +15,7 @@ func main() {
 }
 ```
 
-命令行执行 `go run .\Hello.go`，输出结果：`Hello world`。
+命令行执行 `go run .\hello.go`，输出结果：`Hello world`。
 
 
 
